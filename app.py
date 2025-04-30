@@ -1,48 +1,43 @@
-# eventlet patching must come FIRST
 import eventlet
 eventlet.monkey_patch()
 
 import os
+import pty
+import select
 import subprocess
+import threading
+
 from flask import Flask, render_template_string, request
 from flask_socketio import SocketIO, emit
-from werkzeug.utils import secure_filename
-
-UPLOAD_FOLDER = 'uploads'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 socketio = SocketIO(app)
 
+shell_pid, shell_fd = pty.fork()
+
+if shell_pid == 0:
+    # Child process: replace with bash
+    os.execvp("bash", ["bash"])
+
+# HTML UI + JS terminal
 HTML = '''
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Python Web Terminal</title>
+  <title>Python Terminal</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
   <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
   <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
   <style>
-    body { background: #000; margin: 0; color: white; font-family: monospace; }
-    #terminal { height: 80vh; width: 100%; }
-    #upload-box { padding: 10px; background: #111; }
+    body { margin: 0; background: #000; }
+    #terminal { width: 100%; height: 100vh; }
   </style>
 </head>
 <body>
-  <div id="upload-box">
-    <form id="uploadForm" enctype="multipart/form-data">
-      <input type="file" name="file" />
-      <button type="submit">Upload</button>
-    </form>
-  </div>
-  <div id="terminal"></div>
-
+<div id="terminal"></div>
 <script>
   const term = new Terminal();
   term.open(document.getElementById('terminal'));
-  term.write('Welcome to Python Web Terminal\\r\\n');
-
   const socket = io();
 
   term.onData(data => {
@@ -51,14 +46,6 @@ HTML = '''
 
   socket.on('output', data => {
     term.write(data);
-  });
-
-  document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const form = new FormData(e.target);
-    const res = await fetch('/upload', { method: 'POST', body: form });
-    const msg = await res.text();
-    term.write('\\r\\n' + msg + '\\r\\n');
   });
 </script>
 </body>
@@ -69,24 +56,23 @@ HTML = '''
 def index():
     return render_template_string(HTML)
 
-@app.route('/upload', methods=['POST'])
-def upload():
-    file = request.files.get('file')
-    if file:
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        return f'File uploaded: {filename}'
-    return 'No file uploaded'
-
 @socketio.on('input')
-def handle_input(data):
-    try:
-        result = subprocess.run(data, shell=True, capture_output=True, text=True)
-        output = result.stdout + result.stderr
-        emit('output', output)
-    except Exception as e:
-        emit('output', f"Error: {str(e)}")
+def on_input(data):
+    os.write(shell_fd, data.encode())
+
+def read_from_shell():
+    while True:
+        try:
+            rlist, _, _ = select.select([shell_fd], [], [], 0.1)
+            if shell_fd in rlist:
+                output = os.read(shell_fd, 1024).decode(errors='ignore')
+                socketio.emit('output', output)
+        except OSError:
+            break
+
+# Background thread to read shell output
+threading.Thread(target=read_from_shell, daemon=True).start()
 
 if __name__ == '__main__':
-    print("Server running at http://localhost:5000")
+    print("Terminal running at http://localhost:5000")
     socketio.run(app, host='0.0.0.0', port=5000)
