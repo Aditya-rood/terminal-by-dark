@@ -1,11 +1,12 @@
+# eventlet patching must come FIRST
+import eventlet
+eventlet.monkey_patch()
+
 import os
+import subprocess
 from flask import Flask, render_template_string, request
 from flask_socketio import SocketIO, emit
-import subprocess
-import eventlet
 from werkzeug.utils import secure_filename
-
-eventlet.monkey_patch()
 
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -14,7 +15,6 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 socketio = SocketIO(app)
 
-# Basic HTML + xterm.js frontend served via Python only
 HTML = '''
 <!DOCTYPE html>
 <html>
