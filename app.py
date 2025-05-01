@@ -5,7 +5,6 @@ import os
 import pty
 import select
 import threading
-import subprocess
 from flask import Flask, render_template_string, request
 from flask_socketio import SocketIO, emit
 from werkzeug.utils import secure_filename
@@ -20,23 +19,6 @@ socketio = SocketIO(app)
 shell_pid, shell_fd = pty.fork()
 if shell_pid == 0:
     os.execvp("bash", ["bash"])
-
-background_processes = {}
-
-def run_python_background(filename):
-    try:
-        path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        if not os.path.isfile(path):
-            return f"File not found: {filename}"
-
-        proc = subprocess.Popen(["python3", path],
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE,
-                                text=True)
-        background_processes[filename] = proc
-        return f"Running {filename} in background (PID {proc.pid})"
-    except Exception as e:
-        return f"Error running {filename}: {str(e)}"
 
 HTML = '''
 <!DOCTYPE html>
@@ -117,19 +99,7 @@ def upload():
 
 @socketio.on('input')
 def on_input(data):
-    data = data.strip()
-    if data.startswith('python ') and data.endswith('.py'):
-        filename = data.split('python ')[1]
-        message = run_python_background(filename)
-        emit('output', message + '\n')
-    elif data == 'jobs':
-        message = 'Background Jobs:\n'
-        for name, proc in background_processes.items():
-            status = 'Running' if proc.poll() is None else 'Finished'
-            message += f"{name} (PID {proc.pid}) - {status}\n"
-        emit('output', message)
-    else:
-        os.write(shell_fd, (data + '\n').encode())
+    os.write(shell_fd, data.encode())
 
 def read_from_shell():
     while True:
