@@ -1,0 +1,142 @@
+/* Copyright 2015-2021, The xterm.js Authors. All rights reserved.
+   xterm.js is a terminal front-end for the web that uses the xterm.js library for rendering terminal output.
+   See LICENSE for licensing details */
+
+@import url('https://fonts.googleapis.com/css?family=Inconsolata&display=swap');
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background-color: #000;
+}
+
+body {
+  font-family: 'Inconsolata', monospace;
+  color: #fff;
+}
+
+#terminal {
+  height: 100%;
+  width: 100%;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.xterm {
+  display: block;
+  overflow: hidden;
+  line-height: 1.5;
+  height: 100%;
+  background-color: #000;
+  color: #fff;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.xterm .xterm-rows {
+  display: block;
+  overflow: hidden;
+}
+
+.xterm .xterm-row {
+  display: block;
+  white-space: nowrap;
+}
+
+.xterm .xterm-cell {
+  display: inline-block;
+  text-align: center;
+  width: 1px;
+  height: 1px;
+  line-height: 1.5;
+}
+
+.xterm .xterm-cursor {
+  background-color: #fff;
+  width: 2px;
+}
+
+.xterm .xterm-viewport {
+  overflow: auto;
+  padding-right: 8px;
+}
+
+.xterm .xterm-scroll-area {
+  overflow: hidden;
+}
+
+.xterm .xterm-selection {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.xterm .xterm-title {
+  display: none;
+}
+
+.xterm .xterm-bottom {
+  display: none;
+}
+
+.xterm .xterm-lines {
+  position: relative;
+  height: 100%;
+}
+
+.xterm .xterm-foreground {
+  color: #fff;
+}
+
+.xterm .xterm-background {
+  background-color: #000;
+}
+
+.xterm .xterm-underline {
+  text-decoration: underline;
+}
+
+.xterm .xterm-bold {
+  font-weight: bold;
+}
+
+.xterm .xterm-dim {
+  opacity: 0.6;
+}
+
+.xterm .xterm-inverse {
+  color: #000;
+  background-color: #fff;
+}
+
+.xterm .xterm-hidden {
+  display: none;
+}
+
+.xterm .xterm-blink {
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  50% {
+    visibility: hidden;
+  }
+}
+
+.xterm .xterm-cursor-blink {
+  animation: cursor-blink 1s step-end infinite;
+}
+
+@keyframes cursor-blink {
+  50% {
+    background-color: transparent;
+  }
+}
+
+.xterm .xterm-cursor-contrast {
+  background-color: #fff;
+}
+
+.xterm .xterm-cursor-cell {
+  background-color: #fff;
+  color: #000;
+}
