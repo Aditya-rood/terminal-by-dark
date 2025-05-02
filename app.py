@@ -1,20 +1,21 @@
 import os
-import sys
 import pty
-import subprocess
 from flask import Flask, render_template
 from flask_socketio import SocketIO, emit
 
 app = Flask(__name__)
 socketio = SocketIO(app)
 
-# WebSocket Event to start terminal
+# Global variable for the terminal process
+shell = None
+
 @socketio.on('connect')
 def handle_connect():
-    # Spawn a new shell terminal
+    global shell
+    # Spawn a new shell terminal (bash)
     shell = pty.spawn('/bin/bash', env=os.environ.copy())
-
-    # Send output from terminal to frontend
+    
+    # Send terminal output to the frontend
     def read_output(fd):
         while True:
             output = os.read(fd, 1024)
@@ -22,22 +23,20 @@ def handle_connect():
                 break
             emit('output', output.decode('utf-8'), broadcast=True)
 
-    # Start reading the output from the terminal
+    # Start reading terminal output
     read_output(shell)
 
-# WebSocket Event for user input
+# WebSocket event for user input
 @socketio.on('input')
 def handle_input(data):
-    try:
-        os.write(shell, data.encode('utf-8'))  # Send input to terminal
-    except Exception as e:
-        emit('output', f"Error: {str(e)}")
-        
-# WebSocket event for resizing the terminal
+    if shell:
+        os.write(shell, data.encode('utf-8'))  # Send user input to the shell
+
+# WebSocket event for terminal resizing
 @socketio.on('resize')
 def handle_resize(size):
-    cols, rows = size['cols'], size['rows']
-    pty.resize(shell, cols, rows)
+    if shell:
+        pty.resize(shell, size['cols'], size['rows'])
 
 @app.route('/')
 def index():
