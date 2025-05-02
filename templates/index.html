@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Terminal</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='xterm.css') }}">
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #000;
+    }
+    #terminal {
+      width: 80%;
+      height: 80%;
+    }
+  </style>
+</head>
+<body>
+  <div id="terminal"></div>
+  <script src="{{ url_for('static', filename='xterm.js') }}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.4.1/dist/socket.io.min.js"></script>
+  <script>
+    const socket = io.connect(window.location.origin);
+    const terminal = new Terminal({
+      cols: 80,
+      rows: 24,
+      cursorBlink: true,
+      theme: { background: '#000', foreground: '#fff' }
+    });
+
+    terminal.open(document.getElementById('terminal'));
+
+    terminal.onData(function (data) {
+      socket.emit('input', data);
+    });
+
+    socket.on('output', function (data) {
+      terminal.write(data);
+    });
+
+    terminal.onResize(({ cols, rows }) => {
+      socket.emit('resize', { cols, rows });
+    });
+  </script>
+</body>
+</html>
