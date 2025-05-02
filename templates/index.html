@@ -22,10 +22,11 @@
 </head>
 <body>
   <div id="terminal"></div>
+
   <script src="{{ url_for('static', filename='xterm.js') }}"></script>
   <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.4.1/dist/socket.io.min.js"></script>
   <script>
-    const socket = io.connect(window.location.origin);
+    const socket = io.connect(window.location.origin); // Connect to the server
     const terminal = new Terminal({
       cols: 80,
       rows: 24,
@@ -36,15 +37,15 @@
     terminal.open(document.getElementById('terminal'));
 
     terminal.onData(function (data) {
-      socket.emit('input', data);
+      socket.emit('input', data); // Send data to backend when user types
     });
 
     socket.on('output', function (data) {
-      terminal.write(data);
+      terminal.write(data); // Display terminal output from backend
     });
 
     terminal.onResize(({ cols, rows }) => {
-      socket.emit('resize', { cols, rows });
+      socket.emit('resize', { cols, rows }); // Notify backend on resize
     });
   </script>
 </body>
